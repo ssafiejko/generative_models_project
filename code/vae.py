@@ -10,43 +10,39 @@ class VAE(nn.Module):
     def __init__(self, latent_dim=100):
         super(VAE, self).__init__()
         
-        # Encoder
         self.encoder = nn.Sequential(
-            # input: 3 x 64 x 64
-            nn.Conv2d(3, 64, 4, 2, 1),          # [64, 32, 32]
+            nn.Conv2d(3, 64, 4, 2, 1),          
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
             
-            nn.Conv2d(64, 128, 4, 2, 1),        # [128, 16, 16]
+            nn.Conv2d(64, 128, 4, 2, 1),        
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
             
-            nn.Conv2d(128, 256, 4, 2, 1),       # [256, 8, 8]
+            nn.Conv2d(128, 256, 4, 2, 1),       
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2),
             
             nn.Flatten()
         )
         
-        # Latent space parameters
         self.fc_mu = nn.Linear(256*8*8, latent_dim)
         self.fc_logvar = nn.Linear(256*8*8, latent_dim)
         
-        # Decoder
         self.decoder_input = nn.Linear(latent_dim, 256*8*8)
         
         self.decoder = nn.Sequential(
-            nn.Unflatten(1, (256, 8, 8)),      # [256, 8, 8]
+            nn.Unflatten(1, (256, 8, 8)),      
             
-            nn.ConvTranspose2d(256, 128, 4, 2, 1),  # [128, 16, 16]
+            nn.ConvTranspose2d(256, 128, 4, 2, 1),  
             nn.BatchNorm2d(128),
             nn.ReLU(),
             
-            nn.ConvTranspose2d(128, 64, 4, 2, 1),   # [64, 32, 32]
+            nn.ConvTranspose2d(128, 64, 4, 2, 1),   
             nn.BatchNorm2d(64),
             nn.ReLU(),
             
-            nn.ConvTranspose2d(64, 3, 4, 2, 1),     # [3, 64, 64]
+            nn.ConvTranspose2d(64, 3, 4, 2, 1),     
             nn.Tanh()
         )
 
@@ -56,15 +52,12 @@ class VAE(nn.Module):
         return mu + eps*std
 
     def forward(self, x):
-        # Encoding
         x_enc = self.encoder(x)
         mu = self.fc_mu(x_enc)
         logvar = self.fc_logvar(x_enc)
         
-        # Reparameterization
         z = self.reparameterize(mu, logvar)
         
-        # Decoding
         x_rec = self.decoder_input(z)
         x_rec = self.decoder(x_rec)
         return x_rec, mu, logvar
@@ -102,16 +95,13 @@ def train_vae(dataloader, cfg, hyperparams={}, save_path="vae_history.pkl", loss
             imgs = imgs.to(cfg.device)
             batch_size = imgs.size(0)
             
-            # Forward pass
             recon_imgs, mu, logvar = model(imgs)
             
-            # Reconstruction loss based on selected type
             if loss_type == 'mse':
                 recon = F.mse_loss(recon_imgs, imgs, reduction='sum')
             elif loss_type == 'l1':
                 recon = F.l1_loss(recon_imgs, imgs, reduction='sum')
             elif loss_type == 'bce':
-                # Scale images from [-1, 1] to [0, 1] for BCE
                 recon = F.binary_cross_entropy(
                     (recon_imgs + 1) / 2, 
                     (imgs + 1) / 2, 
@@ -120,39 +110,33 @@ def train_vae(dataloader, cfg, hyperparams={}, save_path="vae_history.pkl", loss
             else:
                 raise ValueError(f"Unknown loss type: {loss_type}")
             
-            # KL divergence
+            
             kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
             
             loss = recon + beta*kl
             
-            # Backpropagation
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             
-            # Metrics
             total_loss += loss.item()
             recon_loss += recon.item()
             kl_loss += kl.item()
             num_samples += batch_size
         
-        # Calculate average losses per sample
         avg_total = total_loss / num_samples
         avg_recon = recon_loss / num_samples
         avg_kl = kl_loss / num_samples
         
-        # Store in history
         history['total_loss'].append(avg_total)
         history['recon_loss'].append(avg_recon)
         history['kl_loss'].append(avg_kl)
         
-        # Print statistics
         print(f"Epoch [{epoch+1}/{cfg.num_epochs}] "
               f"Total loss: {avg_total:.4f} "
               f"(Recon: {avg_recon:.4f} KL: {avg_kl:.4f}) "
               f"Loss type: {loss_type}")
     
-    # Save training history
     with open(save_path, 'wb') as f:
         pickle.dump(history, f)
     print(f"\nHistoria VAE zapisana do: {save_path}")
