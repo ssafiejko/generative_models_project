@@ -1,6 +1,7 @@
 # Generative Models Repository
 
 ![cats](/example_images/interpolated_dcgan_cats1.png) 
+
 *Example generated images from our models*
 
 This repository contains PyTorch implementations of modern generative models, with extensive experiments on cat image generation.
@@ -45,7 +46,7 @@ This repository contains PyTorch implementations of modern generative models, wi
 ### 1. Training Models
 
 #### GAN Training (DCGAN/LSGAN/SNGAN)
-
+```python
 from gan import train_dcgan, train_lsgan, train_sngan
 from config import Config
 
@@ -64,9 +65,9 @@ generator, discriminator, history = train_sngan(
     hyperparams={'lr': 0.0002, 'betas': (0.5, 0.999)},
     save_path="training_history.pkl"
 )
-
+```
 #### VAE Training 
-
+```python
 from vae import train_vae
 
 vae_model, history = train_vae(
@@ -75,9 +76,9 @@ vae_model, history = train_vae(
     hyperparams={'beta': 0.5, 'lr': 0.001},
     loss_type='mse'  # 'mse'|'l1'|'bce'
 )
-
+```
 #### Diffusion Model Training
-
+```python
 from unet import train_model
 
 diffusion_model, losses = train_model(
@@ -87,9 +88,9 @@ diffusion_model, losses = train_model(
     timesteps=1000,
     device='cuda'
 )
-
+```
 ### 2. Generating samples
-
+```python
 # GAN/VAE generation
 num_samples = 16
 z = torch.randn(num_samples, cfg.latent_dim, 1, 1).to(cfg.device)  # For GAN
@@ -101,9 +102,9 @@ with torch.no_grad():
 
 # Diffusion sampling
 samples = diffusion_model.sample(n=16, device=cfg.device)
-
+```
 ### 3. Latent space interpolation
-
+```python
 # For GAN/VAE
 z1 = torch.randn(1, cfg.latent_dim, 1, 1).to(cfg.device)
 z2 = torch.randn(1, cfg.latent_dim, 1, 1).to(cfg.device)
@@ -122,9 +123,9 @@ interpolated = vae_interpolate(
     z2.squeeze(),
     cfg
 )
-
+```
 ### 4. Evaluation
-
+```python
 from utils import compute_fid_score_unified
 
 # Compute FID for any model type
@@ -136,3 +137,4 @@ fid_score = compute_fid_score_unified(
     num_fake=5000
 )
 print(f"FID Score: {fid_score:.2f}")
+```
