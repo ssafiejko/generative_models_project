@@ -1,6 +1,7 @@
 # Generative Models Repository
 
 ![cats](/example_images/interpolated_dcgan_cats1.png) 
+
 *Example generated images from our models*
 
 This repository contains PyTorch implementations of modern generative models, with extensive experiments on cat image generation.
